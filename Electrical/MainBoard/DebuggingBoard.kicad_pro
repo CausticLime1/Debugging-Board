@@ -58,9 +58,9 @@
           "width": 0.0
         },
         {
-          "gap": 0.127,
-          "via_gap": 0.0,
-          "width": 0.128778
+          "gap": 0.3048,
+          "via_gap": 0.254,
+          "width": 0.172212
         }
       ],
       "drc_exclusions": [],
@@ -196,7 +196,7 @@
         0.142494,
         0.15,
         0.152146,
-        0.16,
+        0.156464,
         0.2,
         0.3,
         0.5
@@ -481,7 +481,9 @@
   },
   "libraries": {
     "pinned_footprint_libs": [],
-    "pinned_symbol_libs": []
+    "pinned_symbol_libs": [
+      "JLC_PARTS"
+    ]
   },
   "meta": {
     "filename": "DebuggingBoard.kicad_pro",
@@ -513,7 +515,12 @@
     },
     "net_colors": null,
     "netclass_assignments": null,
-    "netclass_patterns": []
+    "netclass_patterns": [
+      {
+        "netclass": "Default",
+        "pattern": "USB"
+      }
+    ]
   },
   "pcbnew": {
     "last_paths": {
@@ -614,7 +621,7 @@
       "intersheets_ref_short": false,
       "intersheets_ref_show": false,
       "intersheets_ref_suffix": "",
-      "junction_size_choice": 3,
+      "junction_size_choice": 2,
       "label_size_ratio": 0.375,
       "operating_point_overlay_i_precision": 3,
       "operating_point_overlay_i_range": "~A",
