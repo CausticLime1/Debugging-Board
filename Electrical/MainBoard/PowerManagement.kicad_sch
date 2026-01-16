@@ -3033,12 +3033,6 @@
 		(uuid "0d3d07d6-52e6-4196-8512-09ae6b177b21")
 	)
 	(junction
-		(at 61.595 35.56)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "10b48450-072a-413d-94cf-74bfce601261")
-	)
-	(junction
 		(at 252.095 46.99)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3758,7 +3752,7 @@
 	)
 	(wire
 		(pts
-			(xy 61.595 35.56) (xy 63.5 35.56)
+			(xy 60.96 35.56) (xy 63.5 35.56)
 		)
 		(stroke
 			(width 0)
@@ -4205,16 +4199,6 @@
 			(type default)
 		)
 		(uuid "652a3301-4a63-490c-9b35-2c73b7b6b094")
-	)
-	(wire
-		(pts
-			(xy 60.96 35.56) (xy 61.595 35.56)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "676ca0d5-22ff-463b-a313-6096602706a7")
 	)
 	(wire
 		(pts
@@ -7681,7 +7665,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 106.045 76.835 0)
 			(effects
 				(font
@@ -9251,7 +9235,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 92.71 26.67 0)
 			(effects
 				(font
@@ -10591,7 +10575,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 112.395 123.825 0)
 			(effects
 				(font
@@ -10695,73 +10679,6 @@
 			(project "DebuggingBoard"
 				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2/7d6e0902-de5f-4868-b5e7-4184774ee025"
 					(reference "C65")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 61.595 35.56 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "a778d1ad-8c09-4833-b917-520916d42870")
-		(property "Reference" "TP1"
-			(at 63.5 30.9879 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "TestPoint"
-			(at 63.5 33.5279 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
-			(at 66.675 35.56 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 66.675 35.56 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "test point"
-			(at 61.595 35.56 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "2d28a4f5-7846-44dd-857b-eb3bd567a7c3")
-		)
-		(instances
-			(project ""
-				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2/7d6e0902-de5f-4868-b5e7-4184774ee025"
-					(reference "TP1")
 					(unit 1)
 				)
 			)
@@ -13076,7 +12993,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 259.715 46.99 0)
 			(effects
 				(font

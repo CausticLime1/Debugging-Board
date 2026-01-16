@@ -14330,6 +14330,73 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 118.11 283.21 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "0451ad99-8292-4980-9db6-5e7dfcd51986")
+		(property "Reference" "TP1"
+			(at 120.015 278.6379 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "TestPoint"
+			(at 120.015 281.1779 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
+			(at 123.19 283.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 123.19 283.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "test point"
+			(at 118.11 283.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "901af47d-d68a-4be4-9043-c0453e3189bf")
+		)
+		(instances
+			(project "DebuggingBoard"
+				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2"
+					(reference "TP1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 120.65 256.54 0)
 		(unit 1)
@@ -16527,72 +16594,6 @@
 			(project "DebuggingBoard"
 				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2"
 					(reference "#PWR0112")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+5V")
-		(at 117.475 281.94 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "27a85055-a70a-4e20-99e4-6a187c8ddf21")
-		(property "Reference" "#PWR0143"
-			(at 117.475 285.75 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "+5V"
-			(at 117.475 276.86 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 117.475 281.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 117.475 281.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 117.475 281.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "3e32f31b-515f-4fc1-9e9b-2b43cb3a3638")
-		)
-		(instances
-			(project ""
-				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2"
-					(reference "#PWR0143")
 					(unit 1)
 				)
 			)
@@ -19122,7 +19123,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 86.36 55.88 0)
 			(effects
 				(font
@@ -19864,7 +19865,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 176.53 33.02 0)
 			(effects
 				(font
@@ -21844,7 +21845,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 97.155 281.94 0)
 			(effects
 				(font
@@ -21943,73 +21944,6 @@
 			(project "DebuggingBoard"
 				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2"
 					(reference "#PWR010")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 117.475 281.94 180)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "84d37d47-f0d8-4503-bd21-a4f0de86c1c2")
-		(property "Reference" "TP8"
-			(at 120.015 283.9719 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "TestPoint"
-			(at 120.015 286.5119 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
-			(at 112.395 281.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 112.395 281.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "test point"
-			(at 117.475 281.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "ddbf3fa3-7333-4f3c-8fa2-a2a796541c9c")
-		)
-		(instances
-			(project "DebuggingBoard"
-				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2"
-					(reference "TP8")
 					(unit 1)
 				)
 			)
@@ -23602,6 +23536,72 @@
 	)
 	(symbol
 		(lib_id "power:GND")
+		(at 118.11 283.21 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "9863be90-1b56-4d9f-882d-b12b4fdba61d")
+		(property "Reference" "#PWR0143"
+			(at 118.11 289.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 118.11 288.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 118.11 283.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 118.11 283.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 118.11 283.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "caa7afcf-9e29-47fa-8f24-c5226a1b0c9d")
+		)
+		(instances
+			(project "DebuggingBoard"
+				(path "/1061c21d-11bf-48d7-8db8-deedefa943c2"
+					(reference "#PWR0143")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
 		(at 61.595 229.87 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -24493,7 +24493,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 55.88 231.14 0)
 			(effects
 				(font
@@ -26758,7 +26758,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
 			(at 104.14 60.96 0)
 			(effects
 				(font
