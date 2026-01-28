@@ -10,3 +10,7 @@ as an oscilloscope, multimeter, function generator, logic analyzer, variable DC 
 ## Main Board
 
 The central board that all peripheral boards connects to and handles data processing pipeline to a computer. This board has a power management system uses a central 5V rail to provide to a 3.3V LDO for microcontroller logic, and +-12V for operational amplifiers. 
+
+# Notes for Board Redesign
+
+Make sure boot capacitor for 5V is before the inductor
