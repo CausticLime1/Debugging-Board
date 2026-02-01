@@ -13,4 +13,5 @@ The central board that all peripheral boards connects to and handles data proces
 
 # Notes for Board Redesign
 
-Make sure boot capacitor for 5V is before the inductor
+- Make sure boot capacitor for 5V is before the inductor
+- Add GPIO reset pin to USB3300
