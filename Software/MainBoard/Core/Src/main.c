@@ -19,6 +19,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
+#include "usbd_cdc_if.h"
+#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -46,6 +48,8 @@ ADC_HandleTypeDef hadc2;
 
 FDCAN_HandleTypeDef hfdcan1;
 
+OSPI_HandleTypeDef hospi1;
+
 PSSI_HandleTypeDef hpssi;
 
 SPI_HandleTypeDef hspi1;
@@ -59,21 +63,6 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart8;
 
 /* USER CODE BEGIN PV */
-
-/* LCD Control Pins */
-#define LCD_CS_PORT   GPIOD
-#define LCD_CS_PIN    GPIO_PIN_4
-#define LCD_DC_PORT   GPIOD
-#define LCD_DC_PIN    GPIO_PIN_5
-#define LCD_RST_PORT  GPIOD
-#define LCD_RST_PIN   GPIO_PIN_6
-
-/* Global SPI Handle (Make sure this matches your generated code) */
-extern SPI_HandleTypeDef hspi3;
-
-/* Screen Dimensions */
-#define LCD_WIDTH     320
-#define LCD_HEIGHT    240
 
 /* USER CODE END PV */
 
@@ -93,119 +82,13 @@ static void MX_UART8_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_TIM15_Init(void);
 static void MX_UART4_Init(void);
+static void MX_OCTOSPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-void LCD_Select(void) {
-    HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_RESET);
-}
-
-void LCD_Unselect(void) {
-    HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
-}
-
-void LCD_Reset(void) {
-    HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_RESET);
-    HAL_Delay(20);
-    HAL_GPIO_WritePin(LCD_RST_PORT, LCD_RST_PIN, GPIO_PIN_SET);
-    HAL_Delay(50);
-}
-
-void LCD_WriteCommand(uint8_t cmd) {
-    HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_RESET); // Command Mode
-    LCD_Select();
-    HAL_SPI_Transmit(&hspi3, &cmd, 1, 100);
-    LCD_Unselect();
-}
-
-void LCD_WriteData(uint8_t data) {
-    HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_SET); // Data Mode
-    LCD_Select();
-    HAL_SPI_Transmit(&hspi3, &data, 1, 100);
-    LCD_Unselect();
-}
-
-/* Initialization Sequence for ILI9341 (Most common 240x320 driver) */
-void LCD_Init(void) {
-    LCD_Reset();
-
-    LCD_WriteCommand(0x01); // Software Reset
-    HAL_Delay(100);
-
-    LCD_WriteCommand(0xCB); // Power Control A
-    LCD_WriteData(0x39); LCD_WriteData(0x2C); LCD_WriteData(0x00); LCD_WriteData(0x34); LCD_WriteData(0x02);
-
-    LCD_WriteCommand(0xCF); // Power Control B
-    LCD_WriteData(0x00); LCD_WriteData(0xC1); LCD_WriteData(0x30);
-
-    LCD_WriteCommand(0xE8); // Driver timing control A
-    LCD_WriteData(0x85); LCD_WriteData(0x00); LCD_WriteData(0x78);
-
-    LCD_WriteCommand(0xEA); // Driver timing control B
-    LCD_WriteData(0x00); LCD_WriteData(0x00);
-
-    LCD_WriteCommand(0xED); // Power on sequence control
-    LCD_WriteData(0x64); LCD_WriteData(0x03); LCD_WriteData(0x12); LCD_WriteData(0x81);
-
-    LCD_WriteCommand(0xF7); // Pump ratio control
-    LCD_WriteData(0x20);
-
-    LCD_WriteCommand(0xC0); // Power Control 1
-    LCD_WriteData(0x23);
-
-    LCD_WriteCommand(0xC1); // Power Control 2
-    LCD_WriteData(0x10);
-
-    LCD_WriteCommand(0xC5); // VCOM Control 1
-    LCD_WriteData(0x3e); LCD_WriteData(0x28);
-
-    LCD_WriteCommand(0xC7); // VCOM Control 2
-    LCD_WriteData(0x86);
-
-    LCD_WriteCommand(0x36); // Memory Access Control (Orientation)
-    LCD_WriteData(0x48);    // MADCTL: BGR color filter
-
-    LCD_WriteCommand(0x3A); // Pixel Format Set
-    LCD_WriteData(0x55);    // 16-bit color
-
-    LCD_WriteCommand(0xB1); // Frame Rate Control
-    LCD_WriteData(0x00); LCD_WriteData(0x18);
-
-    LCD_WriteCommand(0x11); // Sleep Out
-    HAL_Delay(120);
-
-    LCD_WriteCommand(0x29); // Display ON
-}
-
-/* Fill Screen with color (for testing) */
-void LCD_Fill(uint16_t color) {
-    // Set Window to whole screen
-    LCD_WriteCommand(0x2A); // Column Addr
-    LCD_WriteData(0); LCD_WriteData(0);
-    LCD_WriteData((LCD_WIDTH-1) >> 8); LCD_WriteData((LCD_WIDTH-1) & 0xFF);
-
-    LCD_WriteCommand(0x2B); // Page Addr
-    LCD_WriteData(0); LCD_WriteData(0);
-    LCD_WriteData((LCD_HEIGHT-1) >> 8); LCD_WriteData((LCD_HEIGHT-1) & 0xFF);
-
-    LCD_WriteCommand(0x2C); // Memory Write
-
-    // Prepare buffer to speed up SPI (H7 is fast!)
-    HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_SET);
-    LCD_Select();
-
-    uint8_t data[2] = {color >> 8, color & 0xFF};
-
-    // In a real app, use DMA here. For now, loop blocking.
-    for(int i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++) {
-        HAL_SPI_Transmit(&hspi3, data, 2, 10);
-    }
-    LCD_Unselect();
-}
 
 /* USER CODE END 0 */
 
@@ -215,37 +98,66 @@ void LCD_Fill(uint16_t color) {
   */
 int main(void)
 {
-	SCB->VTOR = 0x08000000;
-	HAL_Init();
-	SystemClock_Config();
-	MX_GPIO_Init();
-	MX_SPI3_Init();
 
-	/* Initialize Display */
-	LCD_Init();
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
 
-	/* Test: Turn Screen RED */
-	LCD_Fill(0xF800);
-	HAL_Delay(1000);
+  /* MPU Configuration--------------------------------------------------------*/
+  MPU_Config();
 
-	/* Test: Turn Screen GREEN */
-	LCD_Fill(0x07E0);
+  /* MCU Configuration--------------------------------------------------------*/
 
-  /* BLINK FIRST - PROVE LIFE */
-  /* If this runs, we know Clocks and Power are good */
-	for(int i=0; i<10; i++) {
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);
-		HAL_Delay(50);
-	}
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* NOW try USB */
-	MX_USB_DEVICE_Init();
+  /* USER CODE BEGIN Init */
 
-	while (1)
-	{
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);
-		HAL_Delay(500);
-	}
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* Configure the peripherals common clocks */
+  PeriphCommonClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_PSSI_Init();
+  MX_USB_DEVICE_Init();
+  MX_ADC1_Init();
+  MX_ADC2_Init();
+  MX_SPI1_Init();
+  MX_SPI2_Init();
+  MX_SPI3_Init();
+  MX_TIM1_Init();
+  MX_UART8_Init();
+  MX_FDCAN1_Init();
+  MX_TIM15_Init();
+  MX_UART4_Init();
+  MX_OCTOSPI1_Init();
+  /* USER CODE BEGIN 2 */
+
+  HAL_PWREx_EnableUSBVoltageDetector();
+  HAL_Delay(200);
+  MX_USB_DEVICE_Init();
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+    {
+	  	printf("System Alive");
+        /* 1. Blink LED (Visual confirmation the CPU hasn't crashed) */
+        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10); // Update Pin to match your board
+
+        /* 3. Wait */
+        HAL_Delay(500);
+    }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -256,32 +168,25 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-  /** Supply configuration update enable
-  */
+  /* 1. Power Setup for VOS0 (Max Speed) */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
-
-  /** Configure the main internal regulator output voltage
-  */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
-
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
+  /* 2. PLL1 Setup (System Clock) - Aiming for 550MHz */
+  /* HSE = 25MHz (Assumption based on your M=2) */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 
-  /* PLL1 Settings (System Clock) -> Source: HSE (25MHz) */
-  RCC_OscInitStruct.PLL.PLLM = 2;   // Input / 2 = 12.5MHz
-  RCC_OscInitStruct.PLL.PLLN = 44;  // 12.5 * 44 = 550MHz VCO
-  RCC_OscInitStruct.PLL.PLLP = 1;   // 550 / 1 = 550MHz (System)
-  RCC_OscInitStruct.PLL.PLLQ = 22;  // 550 / 22 = 25MHz
-  RCC_OscInitStruct.PLL.PLLR = 2;   // 550 / 2 = 275MHz
+  RCC_OscInitStruct.PLL.PLLM = 2;   // Ref = 25MHz / 2 = 12.5 MHz
+  RCC_OscInitStruct.PLL.PLLN = 88;  // VCO = 12.5 * 88 = 1100 MHz
+  RCC_OscInitStruct.PLL.PLLP = 2;   // SysClk = 1100 / 2 = 550 MHz
+  RCC_OscInitStruct.PLL.PLLQ = 22;  // SPI1/2/3 = 1100 / 22 = 50 MHz (Safe)
+  RCC_OscInitStruct.PLL.PLLR = 2;   // Unused usually, set to 550MHz
+
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
@@ -291,79 +196,56 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
+  /* 3. Bus Dividers */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV8;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
-  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
+  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1; // 550 MHz
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;   // 275 MHz
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;  // 137.5 MHz
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV4;  // 137.5 MHz (More stable than DIV8)
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;  // 137.5 MHz
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;  // 137.5 MHz
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure the Peripherals (This turns on PLL2 and PLL3)
-  */
-
-  /* PLL2 Settings: Used for ADC (150MHz) */
-  PeriphClkInitStruct.PLL2.PLL2M = 2;
-  PeriphClkInitStruct.PLL2.PLL2N = 24;
-  PeriphClkInitStruct.PLL2.PLL2P = 2;  // 150 MHz
-  PeriphClkInitStruct.PLL2.PLL2Q = 1;
-  PeriphClkInitStruct.PLL2.PLL2R = 3;  // 100 MHz
-  PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
-  PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
-  PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
-
-  /* PLL3 Settings: Used for USB (48MHz) */
-  PeriphClkInitStruct.PLL3.PLL3M = 5;  // 25MHz / 5 = 5MHz
-  PeriphClkInitStruct.PLL3.PLL3N = 96; // 5 * 96 = 480MHz VCO
-  PeriphClkInitStruct.PLL3.PLL3P = 2;  // 480 / 2 = 240MHz
-  PeriphClkInitStruct.PLL3.PLL3Q = 10; // 480 / 10 = 48MHz (CRITICAL FOR USB)
-  PeriphClkInitStruct.PLL3.PLL3R = 2;  // 480 / 2 = 240MHz
-  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_2;
-  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
-  PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
-
-  /* Assign Clocks to Peripherals */
-  /* ADC gets PLL2P, USB gets PLL3Q */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_USB;
-  PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
-  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
-
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  /* CRITICAL: Use FLASH_LATENCY_6 or 7 for 550MHz. Latency 3 will crash. */
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
   {
     Error_Handler();
   }
 }
 
-/**
-  * @brief Peripherals Common Clock Configuration
-  * @retval None
-  */
 void PeriphCommonClock_Config(void)
 {
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
   /** Initializes the peripherals clock
   */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_OSPI;
+
+  /* PLL2 Setup for ADC and OSPI */
+  /* Ref = 12.5 MHz (Inherits HSE/M from PLL1) */
+
+  /* Goal: ADC = 50 MHz (Max), OSPI = 200 MHz (Fast) */
   PeriphClkInitStruct.PLL2.PLL2M = 2;
-  PeriphClkInitStruct.PLL2.PLL2N = 24;
-  PeriphClkInitStruct.PLL2.PLL2P = 2;
-  PeriphClkInitStruct.PLL2.PLL2Q = 1;
-  PeriphClkInitStruct.PLL2.PLL2R = 3;
+  PeriphClkInitStruct.PLL2.PLL2N = 32; // VCO = 12.5 * 32 = 400 MHz
+
+  /* ADC Clock = VCO / P = 400 / 8 = 50 MHz */
+  PeriphClkInitStruct.PLL2.PLL2P = 8;
+
+  /* OSPI Clock = VCO / R = 400 / 2 = 200 MHz */
+  PeriphClkInitStruct.PLL2.PLL2R = 2;
+
+  /* Unused Q */
+  PeriphClkInitStruct.PLL2.PLL2Q = 2;
+
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+
   PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
+  PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_PLL2;
+
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -553,6 +435,57 @@ static void MX_FDCAN1_Init(void)
 }
 
 /**
+  * @brief OCTOSPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_OCTOSPI1_Init(void)
+{
+
+  /* USER CODE BEGIN OCTOSPI1_Init 0 */
+
+  /* USER CODE END OCTOSPI1_Init 0 */
+
+  OSPIM_CfgTypeDef sOspiManagerCfg = {0};
+
+  /* USER CODE BEGIN OCTOSPI1_Init 1 */
+
+  /* USER CODE END OCTOSPI1_Init 1 */
+  /* OCTOSPI1 parameter configuration*/
+  hospi1.Instance = OCTOSPI1;
+  hospi1.Init.FifoThreshold = 1;
+  hospi1.Init.DualQuad = HAL_OSPI_DUALQUAD_DISABLE;
+  hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MICRON;
+  hospi1.Init.DeviceSize = 32;
+  hospi1.Init.ChipSelectHighTime = 1;
+  hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
+  hospi1.Init.ClockMode = HAL_OSPI_CLOCK_MODE_0;
+  hospi1.Init.WrapSize = HAL_OSPI_WRAP_NOT_SUPPORTED;
+  hospi1.Init.ClockPrescaler = 1;
+  hospi1.Init.SampleShifting = HAL_OSPI_SAMPLE_SHIFTING_NONE;
+  hospi1.Init.DelayHoldQuarterCycle = HAL_OSPI_DHQC_DISABLE;
+  hospi1.Init.ChipSelectBoundary = 0;
+  hospi1.Init.DelayBlockBypass = HAL_OSPI_DELAY_BLOCK_BYPASSED;
+  hospi1.Init.MaxTran = 0;
+  hospi1.Init.Refresh = 0;
+  if (HAL_OSPI_Init(&hospi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sOspiManagerCfg.ClkPort = 1;
+  sOspiManagerCfg.NCSPort = 1;
+  sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
+  if (HAL_OSPIM_Config(&hospi1, &sOspiManagerCfg, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN OCTOSPI1_Init 2 */
+
+  /* USER CODE END OCTOSPI1_Init 2 */
+
+}
+
+/**
   * @brief PSSI Initialization Function
   * @param None
   * @retval None
@@ -687,25 +620,27 @@ static void MX_SPI2_Init(void)
   */
 static void MX_SPI3_Init(void)
 {
+
+  /* USER CODE BEGIN SPI3_Init 0 */
+
+  /* USER CODE END SPI3_Init 0 */
+
+  /* USER CODE BEGIN SPI3_Init 1 */
+
+  /* USER CODE END SPI3_Init 1 */
+  /* SPI3 parameter configuration*/
   hspi3.Instance = SPI3;
   hspi3.Init.Mode = SPI_MODE_MASTER;
   hspi3.Init.Direction = SPI_DIRECTION_2LINES_TXONLY;
-
-  /* FIX 1: Change to 8-BIT Data */
-  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
-
+  hspi3.Init.DataSize = SPI_DATASIZE_4BIT;
   hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_SOFT;
-
-  /* FIX 2: Slow it down for testing (Prescaler 2 is 34MHz, which is very fast) */
-  /* Try Prescaler 16 or 32 to ensure signal integrity first */
   hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-
   hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi3.Init.CRCPolynomial = 0x7; // Default value (was 0x0)
+  hspi3.Init.CRCPolynomial = 0x0;
   hspi3.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
   hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
   hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
@@ -716,11 +651,14 @@ static void MX_SPI3_Init(void)
   hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
   hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
   hspi3.Init.IOSwap = SPI_IO_SWAP_DISABLE;
-
   if (HAL_SPI_Init(&hspi3) != HAL_OK)
   {
     Error_Handler();
   }
+  /* USER CODE BEGIN SPI3_Init 2 */
+
+  /* USER CODE END SPI3_Init 2 */
+
 }
 
 /**
@@ -1010,30 +948,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF9_OCTOSPIM_P1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF6_OCTOSPIM_P1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPIM_P1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pins : PD8 PD4 PD5 PD6 */
   GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1083,11 +997,9 @@ void MPU_Config(void)
 {
   MPU_Region_InitTypeDef MPU_InitStruct = {0};
 
-  /* Disables the MPU */
   HAL_MPU_Disable();
 
-  /** Initializes and configures the Region and the memory to be protected
-  */
+  /* Region 0: Full 4GB background - No Access (Safety) */
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER0;
   MPU_InitStruct.BaseAddress = 0x0;
@@ -1099,11 +1011,24 @@ void MPU_Config(void)
   MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
-
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
-  /* Enables the MPU */
-  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
+  /* Region 1: Internal RAM (AXI SRAM) - Cacheable & Executable */
+  /* Essential for High Performance at 550MHz */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.BaseAddress = 0x24000000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_512KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE; // Allow Code Exec
+  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 }
 
 /**

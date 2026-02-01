@@ -64,8 +64,8 @@ all: main-build
 main-build: MainBoard.elf secondary-outputs
 
 # Tool invocations
-MainBoard.elf MainBoard.map: $(OBJS) $(USER_OBJS) C:\Users\ryans\OneDrive\Documents\Personal\ Projects\Electrical\ Projects\Debugging-Board\STM32CubeMX\MainBoard\STM32H723VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "MainBoard.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\ryans\OneDrive\Documents\Personal Projects\Electrical Projects\Debugging-Board\STM32CubeMX\MainBoard\STM32H723VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MainBoard.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+MainBoard.elf MainBoard.map: $(OBJS) $(USER_OBJS) C:\Users\ryans\OneDrive\Documents\Personal\ Projects\Electrical\ Projects\Debugging-Board\Software\MainBoard\STM32H723VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "MainBoard.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\ryans\OneDrive\Documents\Personal Projects\Electrical Projects\Debugging-Board\Software\MainBoard\STM32H723VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MainBoard.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

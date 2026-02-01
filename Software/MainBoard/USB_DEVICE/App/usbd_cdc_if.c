@@ -22,7 +22,15 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
+#if defined ( __GNUC__ )
+__attribute__((section(".RAM_D2"))) __attribute__((aligned(32)))
+#endif
+uint8_t UserRxBufferHS[APP_RX_DATA_SIZE];
 
+#if defined ( __GNUC__ )
+__attribute__((section(".RAM_D2"))) __attribute__((aligned(32)))
+#endif
+uint8_t UserTxBufferHS[APP_TX_DATA_SIZE];
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,6 +70,13 @@
   */
 
 /* USER CODE BEGIN PRIVATE_DEFINES */
+USBD_CDC_LineCodingTypeDef LineCoding =
+{
+  115200, /* baud rate */
+  0x00,   /* stop bits-1 */
+  0x00,   /* parity - none */
+  0x08    /* nb. of bits 8 */
+};
 /* USER CODE END PRIVATE_DEFINES */
 
 /**
@@ -182,60 +197,25 @@ static int8_t CDC_DeInit_HS(void)
   */
 static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
-  /* USER CODE BEGIN 10 */
   switch(cmd)
   {
-  case CDC_SEND_ENCAPSULATED_COMMAND:
-
-    break;
-
-  case CDC_GET_ENCAPSULATED_RESPONSE:
-
-    break;
-
-  case CDC_SET_COMM_FEATURE:
-
-    break;
-
-  case CDC_GET_COMM_FEATURE:
-
-    break;
-
-  case CDC_CLEAR_COMM_FEATURE:
-
-    break;
-
-  /*******************************************************************************/
-  /* Line Coding Structure                                                       */
-  /*-----------------------------------------------------------------------------*/
-  /* Offset | Field       | Size | Value  | Description                          */
-  /* 0      | dwDTERate   |   4  | Number |Data terminal rate, in bits per second*/
-  /* 4      | bCharFormat |   1  | Number | Stop bits                            */
-  /*                                        0 - 1 Stop bit                       */
-  /*                                        1 - 1.5 Stop bits                    */
-  /*                                        2 - 2 Stop bits                      */
-  /* 5      | bParityType |  1   | Number | Parity                               */
-  /*                                        0 - None                             */
-  /*                                        1 - Odd                              */
-  /*                                        2 - Even                             */
-  /*                                        3 - Mark                             */
-  /*                                        4 - Space                            */
-  /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
-  /*******************************************************************************/
   case CDC_SET_LINE_CODING:
-
+    /* Windows sends settings, we MUST save them */
+    LineCoding.bitrate    = (uint32_t)(pbuf[0] | (pbuf[1] << 8) | (pbuf[2] << 16) | (pbuf[3] << 24));
+    LineCoding.format     = pbuf[4];
+    LineCoding.paritytype = pbuf[5];
+    LineCoding.datatype   = pbuf[6];
     break;
 
   case CDC_GET_LINE_CODING:
-
-    break;
-
-  case CDC_SET_CONTROL_LINE_STATE:
-
-    break;
-
-  case CDC_SEND_BREAK:
-
+    /* Windows asks for settings, we MUST reply */
+    pbuf[0] = (uint8_t)(LineCoding.bitrate);
+    pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
+    pbuf[2] = (uint8_t)(LineCoding.bitrate >> 16);
+    pbuf[3] = (uint8_t)(LineCoding.bitrate >> 24);
+    pbuf[4] = LineCoding.format;
+    pbuf[5] = LineCoding.paritytype;
+    pbuf[6] = LineCoding.datatype;
     break;
 
   default:
@@ -243,7 +223,6 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   }
 
   return (USBD_OK);
-  /* USER CODE END 10 */
 }
 
 /**
@@ -264,8 +243,11 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 11 */
+
+  /* FIX: Do NOT transmit here. Just re-enable reception. */
   USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceHS);
+
   return (USBD_OK);
   /* USER CODE END 11 */
 }
