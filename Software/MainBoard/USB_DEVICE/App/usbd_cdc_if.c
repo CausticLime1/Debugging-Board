@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_if.h"
+#include <stdio.h>
 
 /* USER CODE BEGIN INCLUDE */
 #if defined ( __GNUC__ )
@@ -197,32 +198,71 @@ static int8_t CDC_DeInit_HS(void)
   */
 static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
+  /* USER CODE BEGIN 10 */
   switch(cmd)
   {
-  case CDC_SET_LINE_CODING:
-    /* Windows sends settings, we MUST save them */
-    LineCoding.bitrate    = (uint32_t)(pbuf[0] | (pbuf[1] << 8) | (pbuf[2] << 16) | (pbuf[3] << 24));
-    LineCoding.format     = pbuf[4];
-    LineCoding.paritytype = pbuf[5];
-    LineCoding.datatype   = pbuf[6];
+  case CDC_SEND_ENCAPSULATED_COMMAND:
+
     break;
+
+  case CDC_GET_ENCAPSULATED_RESPONSE:
+
+    break;
+
+  case CDC_SET_COMM_FEATURE:
+
+    break;
+
+  case CDC_GET_COMM_FEATURE:
+
+    break;
+
+  case CDC_CLEAR_COMM_FEATURE:
+
+    break;
+
+  /*******************************************************************************/
+  /* Line Coding Structure                                                       */
+  /*-----------------------------------------------------------------------------*/
+  /* Offset | Field       | Size | Value  | Description                          */
+  /* 0      | dwDTERate   |   4  | Number |Data terminal rate, in bits per second*/
+  /* 4      | bCharFormat |   1  | Number | Stop bits                            */
+  /*                                        0 - 1 Stop bit                       */
+  /*                                        1 - 1.5 Stop bits                    */
+  /*                                        2 - 2 Stop bits                      */
+  /* 5      | bParityType |  1   | Number | Parity                               */
+  /*                                        0 - None                             */
+  /*                                        1 - Odd                              */
+  /*                                        2 - Even                             */
+  /*                                        3 - Mark                             */
+  /*                                        4 - Space                            */
+  /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
+  /*******************************************************************************/
+  case CDC_SET_LINE_CODING:
+	  /* 1. Host sends baud rate settings to STM32 */
+	  memcpy( (uint8_t *)&LineCoding, pbuf, length);
+	  break;
 
   case CDC_GET_LINE_CODING:
-    /* Windows asks for settings, we MUST reply */
-    pbuf[0] = (uint8_t)(LineCoding.bitrate);
-    pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
-    pbuf[2] = (uint8_t)(LineCoding.bitrate >> 16);
-    pbuf[3] = (uint8_t)(LineCoding.bitrate >> 24);
-    pbuf[4] = LineCoding.format;
-    pbuf[5] = LineCoding.paritytype;
-    pbuf[6] = LineCoding.datatype;
-    break;
+	  /* 2. Host asks "What is your current baud rate?" */
+	  /* CRITICAL: If you don't send this back, Windows aborts the driver installation */
+	  memcpy(pbuf, (uint8_t *)&LineCoding, length);
+	  break;
+
+  case CDC_SET_CONTROL_LINE_STATE:
+
+	  break;
+
+  case CDC_SEND_BREAK:
+
+	  break;
 
   default:
-    break;
+	  break;
   }
 
   return (USBD_OK);
+  /* USER CODE END 10 */
 }
 
 /**
@@ -297,6 +337,35 @@ static int8_t CDC_TransmitCplt_HS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
+
+int _write(int file, char *ptr, int len)
+{
+  USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceHS.pClassData;
+
+  // 1. Check connection
+  if (hUsbDeviceHS.dev_state != USBD_STATE_CONFIGURED) return 0;
+
+  // 2. Timeout wait for previous packet to finish (avoid infinite freeze)
+  uint32_t start = HAL_GetTick();
+  while (hcdc->TxState != 0) {
+    if ((HAL_GetTick() - start) > 10) return 0; // Timeout
+  }
+
+  // 3. Limit size to buffer limit
+  if (len > APP_TX_DATA_SIZE) len = APP_TX_DATA_SIZE;
+
+  // 4. Copy to the NON-CACHEABLE buffer (RAM_D2)
+  // This is required because the Stack (where *ptr lives) is Cacheable
+  memcpy(UserTxBufferHS, ptr, len);
+
+  SCB_CleanDCache_by_Addr((uint32_t*)UserTxBufferHS, len);
+
+  // 5. Transmit
+  USBD_CDC_SetTxBuffer(&hUsbDeviceHS, UserTxBufferHS, len);
+  if (USBD_CDC_TransmitPacket(&hUsbDeviceHS) != USBD_OK) return 0;
+
+  return len;
+}
 
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 

@@ -41,7 +41,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
+extern volatile int32_t encoder_value;
+extern volatile uint8_t button_pressed;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -213,5 +214,45 @@ void OTG_HS_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+void EXTI15_10_IRQHandler(void)
+{
+  /* 1. Handle Encoder A (PD11) */
+  if (__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_11) != RESET)
+  {
+    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_11);
+    // Encoder logic here...
+    if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_11) != HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_13)) {
+      encoder_value++;
+    } else {
+      encoder_value--;
+    }
+  }
 
+  /* 2. Handle Encoder B (PD13) */
+  if (__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_13) != RESET)
+  {
+    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_13);
+    // Encoder logic here...
+    if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_11) == HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_13)) {
+      encoder_value++;
+    } else {
+      encoder_value--;
+    }
+  }
+
+  /* 3. Handle Button (PD14) */
+  if (__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_14) != RESET)
+  {
+    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_14);
+    button_pressed = 1;
+  }
+
+  /* 4. CRITICAL FIX: Handle the "Phantom" Pin (PD15) */
+  /* This pin is enabled in main.c, so we MUST clear it to prevent the infinite loop */
+  if (__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_15) != RESET)
+  {
+    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_15);
+    // PD15 logic (if any), or just leave empty to simply clear the flag
+  }
+}
 /* USER CODE END 1 */

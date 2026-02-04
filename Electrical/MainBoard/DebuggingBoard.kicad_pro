@@ -532,7 +532,7 @@
       "plot": "Manufacturing Files/",
       "pos_files": "CPL and BOM/",
       "specctra_dsn": "",
-      "step": "",
+      "step": "../../../../../../../Downloads/DebuggingBoard.step",
       "svg": "",
       "vrml": ""
     },
