@@ -174,6 +174,15 @@ SECTIONS
     *(.RAM_D2*)
     . = ALIGN(4);
   } >RAM_D2
+  
+  /* USB Buffers in RAM_D2 (Non-Cached area) */
+  .usb_data (NOLOAD) :
+  {
+    . = ALIGN(32);
+    *(.usb_data)
+    *(.usb_data*)
+    . = ALIGN(32);
+  } >RAM_D2
   /* --- ADD THIS SECTION END --- */
 
   /* Remove information from the standard libraries */
