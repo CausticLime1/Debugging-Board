@@ -66,15 +66,17 @@ USBD_StatusTypeDef USBD_Get_USB_Status(HAL_StatusTypeDef hal_status);
 void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  /* RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0}; */ // <--- COMMENT THIS OUT
+
   if(pcdHandle->Instance==USB_OTG_HS)
   {
   /* USER CODE BEGIN USB_OTG_HS_MspInit 0 */
-
   /* USER CODE END USB_OTG_HS_MspInit 0 */
 
-  /** Initializes the peripherals clock
-  */
+  /** Initializes the peripherals clock */
+  /* DELETE OR COMMENT OUT THIS WHOLE BLOCK!
+      IT IS OVERWRITING YOUR CORRECT CONFIGURATION FROM MAIN.C
+
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
     PeriphClkInitStruct.PLL3.PLL3M = 5;
     PeriphClkInitStruct.PLL3.PLL3N = 96;
@@ -89,9 +91,11 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     {
       Error_Handler();
     }
-
-  /** Enable USB Voltage detector
   */
+
+  /* Peripheral clock enable */
+	__HAL_RCC_USB_OTG_HS_CLK_ENABLE();
+	__HAL_RCC_USB_OTG_HS_ULPI_CLK_ENABLE();
     HAL_PWREx_EnableUSBVoltageDetector();
 
     __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -395,7 +399,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   hpcd_USB_OTG_HS.Instance = USB_OTG_HS;
   hpcd_USB_OTG_HS.Init.dev_endpoints = 9;
   hpcd_USB_OTG_HS.Init.speed = PCD_SPEED_HIGH;
-  hpcd_USB_OTG_HS.Init.dma_enable = DISABLE;
+  hpcd_USB_OTG_HS.Init.dma_enable = ENABLE;
   hpcd_USB_OTG_HS.Init.phy_itface = USB_OTG_ULPI_PHY;
   hpcd_USB_OTG_HS.Init.Sof_enable = ENABLE;
   hpcd_USB_OTG_HS.Init.low_power_enable = DISABLE;

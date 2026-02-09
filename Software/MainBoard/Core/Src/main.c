@@ -195,21 +195,26 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
+  /* Supply configuration update enable */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
+
+  /* Configure the main internal regulator output voltage */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
+  /* 1. Initialize HSE and PLL1 (System Clock) */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 
-  /* PLL1: System Clock -> 200 MHz */
+  /* PLL1: 25MHz -> 200MHz System Clock */
   RCC_OscInitStruct.PLL.PLLM = 5;
   RCC_OscInitStruct.PLL.PLLN = 80;
   RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 8; // 50MHz (Not used for USB anymore)
+  RCC_OscInitStruct.PLL.PLLQ = 8;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
@@ -220,18 +225,15 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /* --- ENABLE PLL3 FOR USB (48 MHz) --- */
-  /* This ensures the oscillator is actually ON before we select it */
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-
+  /* 2. Configure PLL3 Settings (Input to USB Mux) */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB | RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_OSPI;
   PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
 
-  /* PLL3 Setup: Input 5MHz * 96 / 10 = 48MHz */
+  /* PLL3: 48 MHz for USB */
   PeriphClkInitStruct.PLL3.PLL3M = 5;
   PeriphClkInitStruct.PLL3.PLL3N = 96;
   PeriphClkInitStruct.PLL3.PLL3P = 2;
-  PeriphClkInitStruct.PLL3.PLL3Q = 10; // CRITICAL: 48 MHz
+  PeriphClkInitStruct.PLL3.PLL3Q = 10; // 48 MHz
   PeriphClkInitStruct.PLL3.PLL3R = 2;
   PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_2;
   PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
@@ -254,7 +256,17 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /* CPU, AHB and APB buses clocks */
+  /* 3. CRITICAL: Manually Enable PLL3 AND its Q Output */
+  /* HAL_RCCEx_PeriphCLKConfig does NOT enable the PLL or the Output bits! */
+  __HAL_RCC_PLL3_ENABLE();
+
+    /* USE THIS EXACT LINE (Fixes the "Undefined Reference" error) */
+  __HAL_RCC_PLL3CLKOUT_ENABLE(RCC_PLL3_DIVQ);
+
+    /* Wait for PLL3 to lock */
+  while(__HAL_RCC_GET_FLAG(RCC_FLAG_PLL3RDY) == 0) {}
+
+  /* 4. Initializes the CPU, AHB and APB buses clocks */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
@@ -270,6 +282,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
+  /* 5. Enable USB Voltage Detector (Recommended for stability) */
+  HAL_PWREx_EnableUSBVoltageDetector();
 }
 
 /**
@@ -282,8 +297,10 @@ void PeriphCommonClock_Config(void)
 
   /** Initializes the peripherals clock
   */
-  // Add RCC_PERIPHCLK_USB to the selection
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_OSPI|RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_USB;
+  /* REMOVE RCC_PERIPHCLK_USB from here. We already configured USB in SystemClock_Config */
+  /* Was: PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_OSPI|RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_USB; */
+
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_OSPI|RCC_PERIPHCLK_ADC; // <--- MODIFIED
 
   /* PLL2 Setup (Keep your existing settings for ADC/OSPI) */
   PeriphClkInitStruct.PLL2.PLL2M = 2;
@@ -299,8 +316,8 @@ void PeriphCommonClock_Config(void)
   PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_PLL2;
   PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
 
-  /* Select PLL1Q (which we set to 48MHz) for USB */
-  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
+  /* DELETE OR COMMENT OUT THIS LINE */
+  // PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL; // <--- CAUSING THE BUG (Sets it to PLL1 50MHz)
 
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
