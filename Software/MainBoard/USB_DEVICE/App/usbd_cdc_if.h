@@ -2,10 +2,23 @@
 /**
   ******************************************************************************
   * @file           : usbd_cdc_if.h
+  * @version        : v1.0_Cube
   * @brief          : Header for usbd_cdc_if.c file.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
   ******************************************************************************
   */
 /* USER CODE END Header */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
 
 #ifndef __USBD_CDC_IF_H__
 #define __USBD_CDC_IF_H__
@@ -22,11 +35,11 @@
 /* USER CODE END INCLUDE */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
-  * @brief Usb device library.
+  * @brief For Usb device.
   * @{
   */
 
-/** @defgroup USBD_CDC_IF
+/** @defgroup USBD_CDC_IF USBD_CDC_IF
   * @brief Usb VCP device module
   * @{
   */
@@ -35,10 +48,11 @@
   * @brief Defines.
   * @{
   */
-/* USER CODE BEGIN EXPORTED_DEFINES */
 /* Define size for the receive and transmit buffer over CDC */
 #define APP_RX_DATA_SIZE  2048
 #define APP_TX_DATA_SIZE  2048
+/* USER CODE BEGIN EXPORTED_DEFINES */
+
 /* USER CODE END EXPORTED_DEFINES */
 
 /**
@@ -51,7 +65,7 @@
   */
 
 /* USER CODE BEGIN EXPORTED_TYPES */
-/* REMOVED: USBD_CDC_LineCodingTypeDef definition (already in usbd_cdc.h) */
+
 /* USER CODE END EXPORTED_TYPES */
 
 /**
@@ -63,32 +77,31 @@
   * @{
   */
 
-/* USER CODE BEGIN EXPORTED_MACROS */
+/* USER CODE BEGIN EXPORTED_MACRO */
 
-/* USER CODE END EXPORTED_MACROS */
+/* USER CODE END EXPORTED_MACRO */
+
+/**
+  * @}
+  */
 
 /** @defgroup USBD_CDC_IF_Exported_Variables USBD_CDC_IF_Exported_Variables
   * @brief Public variables.
   * @{
   */
 
-/* USER CODE BEGIN EXPORTED_VARIABLES */
-/* Shared variables for main.c */
-extern USBD_CDC_LineCodingTypeDef LineCoding;
-extern uint8_t UserRxBufferHS[APP_RX_DATA_SIZE];
-extern uint8_t UserTxBufferHS[APP_TX_DATA_SIZE];
-extern uint32_t UserRxBufPtrIn;
-extern uint32_t UserRxBufPtrOut;
-
-/* Expose the Interface Structure so usb_device.c can see it */
+/** CDC Interface callback. */
 extern USBD_CDC_ItfTypeDef USBD_Interface_fops_HS;
+
+/* USER CODE BEGIN EXPORTED_VARIABLES */
+
 /* USER CODE END EXPORTED_VARIABLES */
 
 /**
   * @}
   */
 
-/** @defgroup USBD_CDC_IF_Exported_FunctionsPrototypes USBD_CDC_IF_Exported_FunctionsPrototypes
+/** @defgroup USBD_CDC_IF_Exported_FunctionsPrototype USBD_CDC_IF_Exported_FunctionsPrototype
   * @brief Public functions declaration.
   * @{
   */
@@ -116,3 +129,4 @@ uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len);
 #endif
 
 #endif /* __USBD_CDC_IF_H__ */
+
