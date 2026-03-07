@@ -35,9 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TASK_GUI_FLAG_ENCODER_CW   0b1
-#define TASK_GUI_FLAG_ENCODER_CCW  0b10
-#define TASK_GUI_FLAG_ENCODER_BTN  0b100
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -1260,7 +1258,7 @@ void StartGUI(void *argument)
     if (flag & TASK_GUI_FLAG_ENCODER_CW) toggle_LED(LED3);
     if (flag & TASK_GUI_FLAG_ENCODER_CCW) toggle_LED(LED2);
     if (flag & TASK_GUI_FLAG_ENCODER_BTN)
-      HAL_GPIO_WritePin(LED1, !(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_15)));
+      HAL_GPIO_WritePin(LED1, !(HAL_GPIO_ReadPin(ENC_BUTTON_gpio)));
   }
   /* USER CODE END StartGUI */
 }
@@ -1312,39 +1310,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  if (htim->Instance == TIM7) {
-    static uint8_t prev_ab = 0xFF;
-    static int8_t knob_accum = 0;
-
-    HAL_TIM_Base_Stop_IT(&htim7);
-
-    if (encoder_action == Enc_Knob) {
-      uint8_t a = (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_13));
-      uint8_t b = (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_14));
-      uint8_t curr_ab = (a << 1) | b;
-      if (prev_ab == 0xFF) prev_ab = curr_ab;
-
-      int8_t knob_delta = qdr_table[(prev_ab << 2) | curr_ab];
-      prev_ab = curr_ab;
-
-      if (knob_delta != 0) {
-        if ((knob_accum > 0 && knob_delta < 0) || (knob_accum < 0 && knob_delta > 0))
-          knob_accum = 0;
-        knob_accum += knob_delta;
-      }
-      if (knob_accum >= 4) {
-        knob_accum = 0;
-        osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_CW);
-      } else if (knob_accum <= -4) {
-        knob_accum = 0;
-        osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_CCW);
-      }
-    } else if (encoder_action == Enc_Button) {
-      osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_BTN);
-    }
-    
-    encoder_action = Enc_None;
-    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  if (htim->Instance == TIM7)
+  {
+    tim7_PeriodElapsedCallback_action();
   }
   /* USER CODE END Callback 1 */
 }
