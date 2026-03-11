@@ -94,12 +94,15 @@ void tim7_PeriodElapsedCallback_action() {
     if (knob_accum >= 4) {
       knob_accum = 0;
       osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_CW);
+      toggle_LED(LED3);
     } else if (knob_accum <= -4) {
       knob_accum = 0;
       osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_CCW);
+      toggle_LED(LED2);
     }
   } else if (encoder_action == Enc_Button) {
     osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_BTN);
+    toggle_LED(LED1);
   }
   
   encoder_action = Enc_None;

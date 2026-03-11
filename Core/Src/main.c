@@ -25,6 +25,9 @@
 /* USER CODE BEGIN Includes */
 #include "exti_user.h"
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include "../../ST7789-STM32/ST7789/st7789.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,6 +108,18 @@ const osThreadAttr_t task_GUI_attributes = {
 };
 /* USER CODE BEGIN PV */
 
+#define UI_MENU_ROWS 4
+#define UI_TEXT_X 10
+#define UI_TEXT_PADDING 8
+#define UI_TEXT_FONT Font_11x18
+#define UI_COLOR_BG BLACK
+#define UI_COLOR_FG WHITE
+#define UI_COLOR_HL BLUE
+
+typedef enum { SCREEN_MENU = 0, SCREEN_DETAIL = 1 } Screen_t;
+
+static volatile Screen_t ui_screen = SCREEN_MENU;
+static volatile uint8_t ui_selected = 0; /* 0..UI_MENU_ROWS-1 */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -723,16 +738,16 @@ static void MX_SPI3_Init(void)
   hspi3.Instance = SPI3;
   hspi3.Init.Mode = SPI_MODE_MASTER;
   hspi3.Init.Direction = SPI_DIRECTION_2LINES_TXONLY;
-  hspi3.Init.DataSize = SPI_DATASIZE_4BIT;
-  hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi3.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi3.Init.CRCPolynomial = 0x0;
-  hspi3.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi3.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
   hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
   hspi3.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
@@ -1246,18 +1261,80 @@ void StartControl(void *argument)
 void StartGUI(void *argument)
 {
   /* USER CODE BEGIN StartGUI */
-  /* Infinite loop */
-  for(;;)
-  {
-    uint32_t flag = osThreadFlagsWait(
-      TASK_GUI_FLAG_ENCODER_CW | TASK_GUI_FLAG_ENCODER_CCW | TASK_GUI_FLAG_ENCODER_BTN
-      , osFlagsWaitAny
-      , osWaitForever);
+  /* Initialize display */
+  ST7789_Init();
+  ST7789_SetRotation(1); /* try landscape */
+  ST7789_Fill_Color(UI_COLOR_BG);
 
-    if (flag & TASK_GUI_FLAG_ENCODER_CW) toggle_LED(LED3);
-    if (flag & TASK_GUI_FLAG_ENCODER_CCW) toggle_LED(LED2);
-    if (flag & TASK_GUI_FLAG_ENCODER_BTN)
-      HAL_GPIO_WritePin(LED1, !(HAL_GPIO_ReadPin(ENC_BUTTON_gpio)));
+  uint16_t row_h = UI_TEXT_FONT.height + UI_TEXT_PADDING;
+  uint16_t total_h = row_h * UI_MENU_ROWS;
+  uint16_t start_y = (ST7789_HEIGHT > total_h) ? (ST7789_HEIGHT - total_h) / 2 : 0;
+  uint16_t text_w = (ST7789_WIDTH > (UI_TEXT_X * 2)) ? (ST7789_WIDTH - (UI_TEXT_X * 2)) : (ST7789_WIDTH - UI_TEXT_X);
+  char buf[48];
+
+  /* draw menu items (initial) */
+  for (int i = 0; i < UI_MENU_ROWS; ++i) {
+    uint16_t y = start_y + i * row_h;
+    snprintf(buf, sizeof(buf), "Item %d", i + 1);
+    ST7789_DrawFilledRectangle(UI_TEXT_X - 4, y - 2, text_w + 8, row_h, UI_COLOR_BG);
+    ST7789_WriteString(UI_TEXT_X, y, buf, UI_TEXT_FONT, UI_COLOR_FG, UI_COLOR_BG);
+  }
+  /* highlight selected */
+  uint16_t sel_y = start_y + ui_selected * row_h;
+  snprintf(buf, sizeof(buf), "Item %d", ui_selected + 1);
+  ST7789_DrawFilledRectangle(UI_TEXT_X - 4, sel_y - 2, text_w + 8, row_h, UI_COLOR_HL);
+  ST7789_WriteString(UI_TEXT_X, sel_y, buf, UI_TEXT_FONT, UI_COLOR_BG, UI_COLOR_HL);
+
+  /* Event loop */
+  for (;;) {
+    uint32_t flag = osThreadFlagsWait(
+        TASK_GUI_FLAG_ENCODER_CW | TASK_GUI_FLAG_ENCODER_CCW | TASK_GUI_FLAG_ENCODER_BTN,
+        osFlagsWaitAny, osWaitForever);
+
+    if (flag & (TASK_GUI_FLAG_ENCODER_CW | TASK_GUI_FLAG_ENCODER_CCW)) {
+      uint8_t old = ui_selected;
+      if (flag & TASK_GUI_FLAG_ENCODER_CW)
+        ui_selected = (ui_selected + 1) % UI_MENU_ROWS;
+      if (flag & TASK_GUI_FLAG_ENCODER_CCW)
+        ui_selected = (ui_selected + UI_MENU_ROWS - 1) % UI_MENU_ROWS;
+
+      /* redraw old as normal */
+      uint16_t old_y = start_y + old * row_h;
+      snprintf(buf, sizeof(buf), "Item %d", old + 1);
+      ST7789_DrawFilledRectangle(UI_TEXT_X - 4, old_y - 2, text_w + 8, row_h, UI_COLOR_BG);
+      ST7789_WriteString(UI_TEXT_X, old_y, buf, UI_TEXT_FONT, UI_COLOR_FG, UI_COLOR_BG);
+
+      /* draw new highlighted */
+      uint16_t new_y = start_y + ui_selected * row_h;
+      snprintf(buf, sizeof(buf), "Item %d", ui_selected + 1);
+      ST7789_DrawFilledRectangle(UI_TEXT_X - 4, new_y - 2, text_w + 8, row_h, UI_COLOR_HL);
+      ST7789_WriteString(UI_TEXT_X, new_y, buf, UI_TEXT_FONT, UI_COLOR_BG, UI_COLOR_HL);
+    }
+
+    if (flag & TASK_GUI_FLAG_ENCODER_BTN) {
+      if (ui_screen == SCREEN_MENU) {
+        ui_screen = SCREEN_DETAIL;
+        ST7789_Fill_Color(BLUE);
+        snprintf(buf, sizeof(buf), "hello world %d", ui_selected + 1);
+        size_t len = strlen(buf);
+        uint16_t px = (ST7789_WIDTH > (len * UI_TEXT_FONT.width)) ? (ST7789_WIDTH - (len * UI_TEXT_FONT.width)) / 2 : UI_TEXT_X;
+        uint16_t py = (ST7789_HEIGHT > UI_TEXT_FONT.height) ? (ST7789_HEIGHT - UI_TEXT_FONT.height) / 2 : 0;
+        ST7789_WriteString(px, py, buf, UI_TEXT_FONT, UI_COLOR_FG, UI_COLOR_BG);
+      } else {
+        ui_screen = SCREEN_MENU;
+        ST7789_Fill_Color(UI_COLOR_BG);
+        for (int i = 0; i < UI_MENU_ROWS; ++i) {
+          uint16_t y = start_y + i * row_h;
+          snprintf(buf, sizeof(buf), "Item %d", i + 1);
+          ST7789_DrawFilledRectangle(UI_TEXT_X - 4, y - 2, text_w + 8, row_h, UI_COLOR_BG);
+          ST7789_WriteString(UI_TEXT_X, y, buf, UI_TEXT_FONT, UI_COLOR_FG, UI_COLOR_BG);
+        }
+        uint16_t new_y = start_y + ui_selected * row_h;
+        snprintf(buf, sizeof(buf), "Item %d", ui_selected + 1);
+        ST7789_DrawFilledRectangle(UI_TEXT_X - 4, new_y - 2, text_w + 8, row_h, UI_COLOR_HL);
+        ST7789_WriteString(UI_TEXT_X, new_y, buf, UI_TEXT_FONT, UI_COLOR_BG, UI_COLOR_HL);
+      }
+    }
   }
   /* USER CODE END StartGUI */
 }
