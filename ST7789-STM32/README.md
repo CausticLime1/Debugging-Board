@@ -10,7 +10,7 @@ Using STM32's Hardware SPI(with simple DMA support) to drive a ST7789 based LCD 
 5. Run a `ST7789_Test()` to exam this driver.  
 6. Don't forget to turn the backlight on  
 
-This code has been tested on 240x240 & 170x320 LCD screens.
+This code has been tested on 240x240, 170x320, and 240x320 LCD screens.
 
 > DMA is only useful when huge block write is performed, e.g: Fill full screen or draw a bitmap.  
 > Most MCUs don't have a large enough RAM, so a framebuffer is "cut" into pieces, e.g: a 240x5 pixel buffer for a 240x240 screen.  
@@ -31,10 +31,10 @@ I've had a simple test, connect the screen and mcu via 20cm dupont line, and it 
 - 135*240   
 - 240*240   
 - 170*320 (new)  
+- 240*320  
 
-If you like, you could customize it's resolution to drive different displays you prefer. 
-> For example, a 240x320 display is perfectly suited for st7789.  
-> Just set all X_SHIFT and Y_SHIFT to 0, and set resolution to 240|320.  
+If you like, you could customize its resolution to drive different displays you prefer.
+For a built-in 240x320 configuration, enable `USING_240X320` in `st7789.h`.
 
 For more details, please refer to ST7789's datasheet.  
 

@@ -2,16 +2,13 @@
 #include "stm32h723xx.h"
 #include <stdint.h>
 
-#ifdef USE_DMA
-#include <string.h>
-uint16_t DMA_MIN_SIZE = 16;
-/* If you're using DMA, then u need a "framebuffer" to store datas to be displayed.
- * If your MCU don't have enough RAM, please avoid using DMA(or set 5 to 1).
- * And if your MCU have enough RAM(even larger than full-frame size),
- * Then you can specify the framebuffer size to the full resolution below.
- */
- #define HOR_LEN 	5	//	Also mind the resolution of your screen!
+/* Reuse a small line buffer for repeated RGB565 fills. */
+#define HOR_LEN 	5	//	Also mind the resolution of your screen!
 __attribute__((section(".ram_d1_bss"), aligned(32))) uint16_t disp_buf[ST7789_WIDTH * HOR_LEN];
+#define ST7789_SPI_TIMEOUT_MS 100U
+
+#ifdef USE_DMA
+uint16_t DMA_MIN_SIZE = 16;
 #endif
 
 /**
@@ -35,6 +32,7 @@ static void ST7789_WriteCommand(uint8_t cmd)
  */
 static void ST7789_WriteData(uint8_t *buff, size_t buff_size)
 {
+	HAL_StatusTypeDef status = HAL_OK;
 	ST7789_Select();
 	ST7789_DC_Set();
 
@@ -43,16 +41,42 @@ static void ST7789_WriteData(uint8_t *buff, size_t buff_size)
 	while (buff_size > 0) {
 		uint16_t chunk_size = buff_size > 65535 ? 65535 : buff_size;
 		#ifdef USE_DMA
-			if (DMA_MIN_SIZE <= buff_size)
+			if (DMA_MIN_SIZE <= chunk_size)
 			{
-				HAL_SPI_Transmit_DMA(&ST7789_SPI_PORT, buff, chunk_size);
-				while (ST7789_SPI_PORT.hdmatx->State != HAL_DMA_STATE_READY)
-				{}
+				uint32_t start = HAL_GetTick();
+
+				status = HAL_SPI_Transmit_DMA(&ST7789_SPI_PORT, buff, chunk_size);
+				if (status != HAL_OK) {
+					(void)HAL_SPI_Abort(&ST7789_SPI_PORT);
+					break;
+				}
+
+				while (HAL_SPI_GetState(&ST7789_SPI_PORT) != HAL_SPI_STATE_READY) {
+					if ((HAL_GetTick() - start) > ST7789_SPI_TIMEOUT_MS) {
+						status = HAL_TIMEOUT;
+						(void)HAL_SPI_Abort(&ST7789_SPI_PORT);
+						break;
+					}
+				}
+				if (status != HAL_OK) {
+					break;
+				}
+
 			}
 			else
-				HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
+			{
+				status = HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
+				if (status != HAL_OK) {
+					(void)HAL_SPI_Abort(&ST7789_SPI_PORT);
+					break;
+				}
+			}
 		#else
-			HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
+			status = HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
+			if (status != HAL_OK) {
+				(void)HAL_SPI_Abort(&ST7789_SPI_PORT);
+				break;
+			}
 		#endif
 		buff += chunk_size;
 		buff_size -= chunk_size;
@@ -135,9 +159,6 @@ static void ST7789_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint1
  */
 void ST7789_Init(void)
 {
-	#ifdef USE_DMA
-		memset(disp_buf, 0, sizeof(disp_buf));
-	#endif
 	HAL_Delay(10);
     ST7789_RST_Clr();
     HAL_Delay(10);
@@ -200,27 +221,7 @@ void ST7789_Init(void)
  */
 void ST7789_Fill_Color(uint16_t color)
 {
-	uint16_t i;
-	ST7789_SetAddressWindow(0, 0, ST7789_WIDTH - 1, ST7789_HEIGHT - 1);
-	ST7789_Select();
-
-	#ifdef USE_DMA
-		for (i = 0; i < ST7789_HEIGHT / HOR_LEN; i++)
-		{
-			for (uint32_t j = 0; j < ST7789_WIDTH * HOR_LEN; j++) {
-				disp_buf[j] = color;
-			}
-			ST7789_WriteData((uint8_t *)disp_buf, sizeof(disp_buf));
-		}
-	#else
-		uint16_t j;
-		for (i = 0; i < ST7789_WIDTH; i++)
-				for (j = 0; j < ST7789_HEIGHT; j++) {
-					uint8_t data[] = {color >> 8, color & 0xFF};
-					ST7789_WriteData(data, sizeof(data));
-				}
-	#endif
-	ST7789_UnSelect();
+	ST7789_DrawFilledRectangle(0, 0, ST7789_WIDTH, ST7789_HEIGHT, color);
 }
 
 /**
@@ -507,30 +508,38 @@ void ST7789_WriteString(uint16_t x, uint16_t y, const char *str, FontDef font, u
  */
 void ST7789_DrawFilledRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 {
-	ST7789_Select();
-	uint8_t i;
-
 	/* Check input parameters */
 	if (x >= ST7789_WIDTH ||
-		y >= ST7789_HEIGHT) {
-		/* Return error */
+		y >= ST7789_HEIGHT ||
+		w == 0 ||
+		h == 0) {
 		return;
 	}
 
 	/* Check width and height */
-	if ((x + w) >= ST7789_WIDTH) {
+	if ((x + w) > ST7789_WIDTH) {
 		w = ST7789_WIDTH - x;
 	}
-	if ((y + h) >= ST7789_HEIGHT) {
+	if ((y + h) > ST7789_HEIGHT) {
 		h = ST7789_HEIGHT - y;
 	}
 
-	/* Draw lines */
-	for (i = 0; i <= h; i++) {
-		/* Draw lines */
-		ST7789_DrawLine(x, y + i, x + w, y + i, color);
+	ST7789_SetAddressWindow(x, y, x + w - 1, y + h - 1);
+
+	uint16_t color_be = (uint16_t)((color << 8) | (color >> 8));
+	uint32_t remaining_rows = h;
+
+	while (remaining_rows > 0) {
+		uint32_t rows = remaining_rows > HOR_LEN ? HOR_LEN : remaining_rows;
+		uint32_t pixel_count = (uint32_t)w * rows;
+
+		for (uint32_t i = 0; i < pixel_count; i++) {
+			disp_buf[i] = color_be;
+		}
+
+		ST7789_WriteData((uint8_t *)disp_buf, pixel_count * sizeof(uint16_t));
+		remaining_rows -= rows;
 	}
-	ST7789_UnSelect();
 }
 
 /** 

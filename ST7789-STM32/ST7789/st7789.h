@@ -33,20 +33,21 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
 
 /*
  * Comment one to use another.
- * 3 parameters can be choosed
- * 135x240(0.96 inch) & 240x240(1.3inch) & 170x320(1.9inch)
+ * 4 parameters can be choosed
+ * 135x240(0.96 inch) & 240x240(1.3inch) & 170x320(1.9inch) & 240x320
  * X_SHIFT & Y_SHIFT are used to adapt different display's resolution
  */
 
 /* Choose a type you are using */
 //#define USING_135X240
-#define USING_240X240
+//#define USING_240X240
 //#define USING_170X320
+#define USING_240X320
 
 /* Choose a display rotation you want to use: (0-3) */
 //#define ST7789_ROTATION 0
-//#define ST7789_ROTATION 1
-#define ST7789_ROTATION 2				//  use Normally on 240x240
+#define ST7789_ROTATION 1				// landscape on a 240x320 panel
+//#define ST7789_ROTATION 2
 //#define ST7789_ROTATION 3
 
 #ifdef USING_135X240
@@ -130,6 +131,38 @@ extern SPI_HandleTypeDef ST7789_SPI_PORT;
         #define ST7789_HEIGHT 170
         #define X_SHIFT 0
         #define Y_SHIFT 35
+    #endif
+
+#endif
+
+#ifdef USING_240X320
+
+    #if ST7789_ROTATION == 0
+        #define ST7789_WIDTH 240
+        #define ST7789_HEIGHT 320
+        #define X_SHIFT 0
+        #define Y_SHIFT 0
+    #endif
+
+    #if ST7789_ROTATION == 1
+        #define ST7789_WIDTH 320
+        #define ST7789_HEIGHT 240
+        #define X_SHIFT 0
+        #define Y_SHIFT 0
+    #endif
+
+    #if ST7789_ROTATION == 2
+        #define ST7789_WIDTH 240
+        #define ST7789_HEIGHT 320
+        #define X_SHIFT 0
+        #define Y_SHIFT 0
+    #endif
+
+    #if ST7789_ROTATION == 3
+        #define ST7789_WIDTH 320
+        #define ST7789_HEIGHT 240
+        #define X_SHIFT 0
+        #define Y_SHIFT 0
     #endif
 
 #endif

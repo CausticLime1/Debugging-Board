@@ -1263,7 +1263,6 @@ void StartGUI(void *argument)
   /* USER CODE BEGIN StartGUI */
   /* Initialize display */
   ST7789_Init();
-  ST7789_SetRotation(1); /* try landscape */
   ST7789_Fill_Color(UI_COLOR_BG);
 
   uint16_t row_h = UI_TEXT_FONT.height + UI_TEXT_PADDING;

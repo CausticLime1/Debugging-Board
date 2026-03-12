@@ -26,6 +26,8 @@
 
 #define ENCODER_KNOB_DEBOUNCE_US    100u
 #define ENCODER_BUTTON_DEBOUNCE_US  10000u
+#define ENC_BUTTON_PRESSED_STATE    GPIO_PIN_RESET
+#define ENC_BUTTON_RELEASED_STATE   GPIO_PIN_SET
 
 // to move
 #define TASK_GUI_FLAG_ENCODER_CW   0b1
@@ -74,6 +76,7 @@ void tim7_start_oneshot_us(uint16_t us) {
 void tim7_PeriodElapsedCallback_action() {
   static uint8_t prev_ab = 0xFF;
   static int8_t knob_accum = 0;
+  static uint8_t prev_button_state = 0xFF;
 
   HAL_TIM_Base_Stop_IT(&htim7);
 
@@ -101,8 +104,18 @@ void tim7_PeriodElapsedCallback_action() {
       toggle_LED(LED2);
     }
   } else if (encoder_action == Enc_Button) {
-    osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_BTN);
-    toggle_LED(LED1);
+    uint8_t button_state = HAL_GPIO_ReadPin(ENC_BUTTON_gpio);
+
+    if (prev_button_state == 0xFF) {
+      prev_button_state = button_state;
+    } else {
+      if ((prev_button_state == ENC_BUTTON_PRESSED_STATE) &&
+          (button_state == ENC_BUTTON_RELEASED_STATE)) {
+        osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_BTN);
+        toggle_LED(LED1);
+      }
+      prev_button_state = button_state;
+    }
   }
   
   encoder_action = Enc_None;
