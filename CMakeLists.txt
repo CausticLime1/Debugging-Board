@@ -69,3 +69,19 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
 )
+
+if(CMAKE_HOST_WIN32)
+    add_custom_target(flash
+        COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_SOURCE_DIR}/.vscode/stm32cube.ps1" flash -Preset ${CMAKE_BUILD_TYPE}
+        DEPENDS ${CMAKE_PROJECT_NAME}
+        USES_TERMINAL
+        COMMENT "Flashing ${CMAKE_PROJECT_NAME}.elf via STM32CubeProgrammer"
+    )
+
+    add_custom_target(flash_run
+        COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_SOURCE_DIR}/.vscode/stm32cube.ps1" flash-run -Preset ${CMAKE_BUILD_TYPE}
+        DEPENDS ${CMAKE_PROJECT_NAME}
+        USES_TERMINAL
+        COMMENT "Flashing and resetting ${CMAKE_PROJECT_NAME}.elf via STM32CubeProgrammer"
+    )
+endif()
