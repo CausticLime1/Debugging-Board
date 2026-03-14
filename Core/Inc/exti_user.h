@@ -1,4 +1,4 @@
-#include "cmsis_os2.h"
+#include "lv_port_indev.h"
 #include "stm32h723xx.h"
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_cortex.h"
@@ -29,15 +29,9 @@
 #define ENC_BUTTON_PRESSED_STATE    GPIO_PIN_RESET
 #define ENC_BUTTON_RELEASED_STATE   GPIO_PIN_SET
 
-// to move
-#define TASK_GUI_FLAG_ENCODER_CW   0b1
-#define TASK_GUI_FLAG_ENCODER_CCW  0b10
-#define TASK_GUI_FLAG_ENCODER_BTN  0b100
-
 typedef enum { Enc_None, Enc_Knob, Enc_Button } Encoder_Action;
 
 extern TIM_HandleTypeDef htim7;
-extern osThreadId_t task_GUIHandle;
 
 volatile Encoder_Action encoder_action = Enc_None;
 
@@ -96,11 +90,11 @@ void tim7_PeriodElapsedCallback_action() {
     }
     if (knob_accum >= 4) {
       knob_accum = 0;
-      osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_CW);
+      enc_report_cw();
       toggle_LED(LED3);
     } else if (knob_accum <= -4) {
       knob_accum = 0;
-      osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_CCW);
+      enc_report_ccw();
       toggle_LED(LED2);
     }
   } else if (encoder_action == Enc_Button) {
@@ -111,7 +105,7 @@ void tim7_PeriodElapsedCallback_action() {
     } else {
       if ((prev_button_state == ENC_BUTTON_PRESSED_STATE) &&
           (button_state == ENC_BUTTON_RELEASED_STATE)) {
-        osThreadFlagsSet(task_GUIHandle, TASK_GUI_FLAG_ENCODER_BTN);
+        enc_report_btn();
         toggle_LED(LED1);
       }
       prev_button_state = button_state;

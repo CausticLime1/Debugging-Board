@@ -229,12 +229,6 @@ SECTIONS
   PROVIDE( __bss_start = __tbss_start );
   PROVIDE( __bss_size = __bss_end - __bss_start );
 
-  .ram_d1_bss (NOLOAD) : ALIGN(32)
-  {
-    *(.ram_d1_bss)
-    *(.ram_d1_bss*)
-    . = ALIGN(32);
-  } >RAM_D1
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack (NOLOAD) :
@@ -248,6 +242,15 @@ SECTIONS
   } >DTCMRAM
 
 
+  /* LVGL draw buffers in RAM_D1 at fixed address 0x24010000 (after the 64K LVGL heap).
+   * CPU (D1 domain) writes RAM_D1 directly — no D1→D2 interconnect write buffer.
+   * DMA1 (D2 domain) can reach RAM_D1 via the AXI crossbar. */
+  .dma_buf 0x24010000 (NOLOAD) : ALIGN(32)
+  {
+    *(.dma_buf)
+    *(.dma_buf*)
+    . = ALIGN(32);
+  } >RAM_D1
 
   /* Remove information from the standard libraries */
   /DISCARD/ :
