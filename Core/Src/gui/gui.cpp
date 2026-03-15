@@ -11,6 +11,7 @@ void gui_init(void)
     lv_tick_set_cb(HAL_GetTick); // ms-accurate tick from SysTick HAL
 
     lv_port_disp_init();
+    screens_apply_theme();
 
     lv_indev_t *enc = lv_port_indev_init();
     lv_group_t *grp = lv_group_create();

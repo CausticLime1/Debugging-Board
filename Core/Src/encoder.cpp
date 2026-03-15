@@ -6,11 +6,9 @@ extern TIM_HandleTypeDef htim7;
 
 namespace {
 
-constexpr uint32_t      APB1_TICKS_PER_US          = 275u;
-constexpr uint32_t      ENCODER_KNOB_DEBOUNCE_US   = 100u;
-constexpr uint32_t      ENCODER_BUTTON_DEBOUNCE_US = 10000u;
-constexpr GPIO_PinState ENC_BUTTON_PRESSED_STATE   = GPIO_PIN_RESET;
-constexpr GPIO_PinState ENC_BUTTON_RELEASED_STATE  = GPIO_PIN_SET;
+constexpr uint32_t APB1_TICKS_PER_US          = 275u;
+constexpr uint32_t ENCODER_KNOB_DEBOUNCE_US   = 100u;
+constexpr uint32_t ENCODER_BUTTON_DEBOUNCE_US = 10000u;
 
 enum class Encoder_Action { None, Knob, Button, Aux };
 
@@ -60,9 +58,8 @@ extern "C" void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 void tim7_PeriodElapsedCallback_action(void)
 {
-    static uint8_t prev_ab           = 0xFF;
-    static int8_t  knob_accum        = 0;
-    static uint8_t prev_button_state = 0xFF;
+    static uint8_t prev_ab    = 0xFF;
+    static int8_t  knob_accum = 0;
 
     HAL_TIM_Base_Stop_IT(&htim7);
 
@@ -90,18 +87,8 @@ void tim7_PeriodElapsedCallback_action(void)
             TOGGLE_LED(LED2);
         }
     } else if (encoder_action == Encoder_Action::Button) {
-        uint8_t button_state = (uint8_t)HAL_GPIO_ReadPin(ENC_BUTTON_PORT, ENC_BUTTON_PIN);
-
-        if (prev_button_state == 0xFF) {
-            prev_button_state = button_state;
-        } else {
-            if (prev_button_state == ENC_BUTTON_PRESSED_STATE &&
-                button_state      == ENC_BUTTON_RELEASED_STATE) {
-                enc_report_btn();
-                TOGGLE_LED(LED1);
-            }
-            prev_button_state = button_state;
-        }
+        enc_report_btn((int)HAL_GPIO_ReadPin(ENC_BUTTON_PORT, ENC_BUTTON_PIN));
+        TOGGLE_LED(LED1);
     }
     // Enc_Aux (BUTTON_PIN): placeholder, no action yet
 

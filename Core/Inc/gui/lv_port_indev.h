@@ -7,7 +7,7 @@ extern "C" {
 /* C-callable shims — written by the atomic ISR bridge, called from exti_user.h */
 void enc_report_cw(void);
 void enc_report_ccw(void);
-void enc_report_btn(void);
+void enc_report_btn(int pin_state);
 
 struct _lv_indev_t;
 struct _lv_indev_t * lv_port_indev_init(void);

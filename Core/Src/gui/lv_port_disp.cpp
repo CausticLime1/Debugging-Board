@@ -69,6 +69,7 @@ void lv_port_disp_init(void)
      * MADCTL MY|MV (0xA0) matches the old library's rotation=1.
      */
     g_disp = lv_st7789_create(320, 240, LV_LCD_FLAG_NONE, disp_send_cmd, disp_send_color);
+    lv_display_set_color_format(g_disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
     lv_st7789_set_invert(g_disp, true);
     lv_lcd_generic_mipi_set_address_mode(g_disp, false, true, true, false);
 
