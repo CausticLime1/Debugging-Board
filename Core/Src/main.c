@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "exti_user.h"
+#include "board.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

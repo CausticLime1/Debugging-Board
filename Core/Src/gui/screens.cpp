@@ -11,7 +11,7 @@ static int s_focus_idx = 0;
 
 static void item_event_cb(lv_event_t *e)
 {
-    int idx = static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(e)));
+    int idx = (int)(uintptr_t)lv_event_get_user_data(e);
     s_focus_idx = idx;
     screen_detail_load(idx);
 }
@@ -26,8 +26,7 @@ void screen_menu_load(void)
     lv_obj_t *focus_btn = nullptr;
     for (int i = 0; i < ITEM_COUNT; i++) {
         lv_obj_t *btn = lv_list_add_button(list, nullptr, items[i]);
-        lv_obj_add_event_cb(btn, item_event_cb, LV_EVENT_CLICKED,
-                            reinterpret_cast<void *>(static_cast<intptr_t>(i)));
+        lv_obj_add_event_cb(btn, item_event_cb, LV_EVENT_CLICKED, (void*)(uintptr_t)i);
         if (i == s_focus_idx) focus_btn = btn;
     }
     if (focus_btn) lv_group_focus_obj(focus_btn);
