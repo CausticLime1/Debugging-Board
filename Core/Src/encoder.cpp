@@ -87,8 +87,11 @@ void tim7_PeriodElapsedCallback_action(void)
             TOGGLE_LED(LED2);
         }
     } else if (encoder_action == Encoder_Action::Button) {
-        enc_report_btn((int)HAL_GPIO_ReadPin(ENC_BUTTON_PORT, ENC_BUTTON_PIN));
-        TOGGLE_LED(LED1);
+        GPIO_PinState btn = HAL_GPIO_ReadPin(ENC_BUTTON_PORT, ENC_BUTTON_PIN);
+        enc_report_btn((int)btn);
+        // Active-low button: pin LOW = pressed → LED on; pin HIGH = released → LED off
+        HAL_GPIO_WritePin(LED1_PORT, LED1_PIN,
+            btn == GPIO_PIN_RESET ? GPIO_PIN_SET : GPIO_PIN_RESET);
     }
     // Enc_Aux (BUTTON_PIN): placeholder, no action yet
 
