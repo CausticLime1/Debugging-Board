@@ -1,9 +1,6 @@
-#include <atomic>
 #include "lvgl.h"
-#include "lv_port_indev.h"
-
-std::atomic<int> g_enc_diff{0};
-std::atomic<int> g_enc_btn{0};
+#include "lv_port.h"
+#include "encoder.h"
 
 namespace {
 
@@ -15,10 +12,6 @@ void encoder_read_cb(lv_indev_t * /*indev*/, lv_indev_data_t *data)
 }
 
 } // namespace
-
-void enc_report_cw(void)  { g_enc_diff.fetch_add( 1, std::memory_order_relaxed); }
-void enc_report_ccw(void) { g_enc_diff.fetch_add(-1, std::memory_order_relaxed); }
-void enc_report_btn(int pin_state) { g_enc_btn.store(pin_state == 0 ? 1 : 0, std::memory_order_relaxed); }
 
 lv_indev_t * lv_port_indev_init(void)
 {

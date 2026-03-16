@@ -1,6 +1,6 @@
 #include "lvgl.h"
 #include "src/drivers/display/st7789/lv_st7789.h"
-#include "lv_port_disp.h"
+#include "lv_port.h"
 #include "board.h"
 
 extern SPI_HandleTypeDef hspi3;

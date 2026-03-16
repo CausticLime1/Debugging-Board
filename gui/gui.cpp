@@ -1,8 +1,7 @@
 #include "lvgl.h"
 #include "stm32h7xx_hal.h"
 #include "gui.h"
-#include "lv_port_disp.h"
-#include "lv_port_indev.h"
+#include "lv_port.h"
 
 namespace {
 

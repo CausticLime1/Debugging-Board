@@ -1,8 +1,11 @@
-#include "board.h"
-#include "lv_port_indev.h"
+#include "encoder.h"
 #include "stm32h7xx_hal.h"
 
 extern TIM_HandleTypeDef htim7;
+
+/* Encoder state — owned here, read by gui/lv_port_indev.cpp via encoder.h */
+std::atomic<int> g_enc_diff{0};
+std::atomic<int> g_enc_btn{0};
 
 namespace {
 
@@ -30,6 +33,10 @@ void tim7_start_oneshot_us(uint16_t us)
     __HAL_TIM_ENABLE_IT(&htim7, TIM_IT_UPDATE);
     HAL_TIM_Base_Start_IT(&htim7);
 }
+
+void enc_report_cw()                { g_enc_diff.fetch_add( 1, std::memory_order_relaxed); }
+void enc_report_ccw()               { g_enc_diff.fetch_add(-1, std::memory_order_relaxed); }
+void enc_report_btn(int pin_state)  { g_enc_btn.store(pin_state == 0 ? 1 : 0, std::memory_order_relaxed); }
 
 } // namespace
 
@@ -89,7 +96,7 @@ void tim7_PeriodElapsedCallback_action(void)
     } else if (encoder_action == Encoder_Action::Button) {
         GPIO_PinState btn = HAL_GPIO_ReadPin(ENC_BUTTON_PORT, ENC_BUTTON_PIN);
         enc_report_btn((int)btn);
-        // Active-low button: pin LOW = pressed → LED on; pin HIGH = released → LED off
+        // Active-low: pin LOW = pressed → LED on; pin HIGH = released → LED off
         HAL_GPIO_WritePin(LED1_PORT, LED1_PIN,
             btn == GPIO_PIN_RESET ? GPIO_PIN_SET : GPIO_PIN_RESET);
     }

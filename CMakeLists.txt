@@ -38,11 +38,11 @@ add_executable(${CMAKE_PROJECT_NAME})
 add_subdirectory(cmake/stm32cubemx)
 
 # Add LVGL
-set(LV_BUILD_CONF_DIR "${CMAKE_SOURCE_DIR}/Core/Inc" CACHE PATH "" FORCE)
+set(LV_BUILD_CONF_DIR "${CMAKE_SOURCE_DIR}/gui" CACHE PATH "" FORCE)
 set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CONFIG_LV_BUILD_DEMOS    OFF CACHE BOOL "" FORCE)
 set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "" FORCE)
-add_subdirectory(third_party/lvgl)
+add_subdirectory(gui/lvgl)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -53,15 +53,15 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/Src/encoder.cpp
-    Core/Src/gui/gui.cpp
-    Core/Src/gui/lv_port_disp.cpp
-    Core/Src/gui/lv_port_indev.cpp
+    gui/gui.cpp
+    gui/lv_port_disp.cpp
+    gui/lv_port_indev.cpp
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    Core/Inc/gui
+    gui
 )
 
 # Add project symbols (macros)
