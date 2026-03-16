@@ -60,7 +60,8 @@ RAM_D1 (xrw)      : ORIGIN = 0x24000000, LENGTH = 320K
 RAM_D2 (xrw)      : ORIGIN = 0x30000000, LENGTH = 32K
 RAM_D3 (xrw)      : ORIGIN = 0x38000000, LENGTH = 16K
 ITCMRAM (xrw)      : ORIGIN = 0x00000000, LENGTH = 64K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 1024K
+FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 896K
+NV_STORAGE (r)  : ORIGIN = 0x080E0000, LENGTH = 128K
 }
 
 /* Highest address of the user mode stack */
@@ -241,6 +242,15 @@ SECTIONS
   } >DTCMRAM
 
 
+  /* LVGL draw buffers in RAM_D1 at fixed address 0x24010000 (after the 64K LVGL heap).
+   * CPU (D1 domain) writes RAM_D1 directly — no D1→D2 interconnect write buffer.
+   * DMA1 (D2 domain) can reach RAM_D1 via the AXI crossbar. */
+  .dma_buf 0x24010000 (NOLOAD) : ALIGN(32)
+  {
+    *(.dma_buf)
+    *(.dma_buf*)
+    . = ALIGN(32);
+  } >RAM_D1
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

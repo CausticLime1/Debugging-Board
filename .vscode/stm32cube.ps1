@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("configure", "build", "flash", "flash-run")]
+    [ValidateSet("configure", "build", "flash", "flash-run", "codegen")]
     [string]$Action,
 
     [string]$Preset = "Debug",
@@ -134,5 +134,80 @@ switch ($Action) {
             "-v",
             "-rst"
         )
+    }
+
+    "codegen" {
+        # Locate CubeMX using the same lookup as the ST VSCode extension:
+        # 1. Read SoftwarePath from ~/.stm32cubemx/plugins/updater/updater.ini (written by the CubeMX installer)
+        # 2. Fall back to the hardcoded default install path
+        $cubemxExe = $null
+        $updaterIni = Join-Path $env:USERPROFILE ".stm32cubemx\plugins\updater\updater.ini"
+        if (Test-Path $updaterIni) {
+            $softwarePath = Get-Content $updaterIni | Where-Object { $_ -match "^SoftwarePath=" } | Select-Object -First 1
+            if ($softwarePath) {
+                $candidate = Join-Path ($softwarePath -replace "^SoftwarePath=", "").Trim() "STM32CubeMX.exe"
+                if (Test-Path $candidate) { $cubemxExe = $candidate }
+            }
+        }
+        if (-not $cubemxExe) {
+            $candidate = "C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeMX\STM32CubeMX.exe"
+            if (Test-Path $candidate) { $cubemxExe = $candidate }
+        }
+        if (-not $cubemxExe) { throw "Could not find STM32CubeMX.exe. Install STM32CubeMX and ensure ~/.stm32cubemx/plugins/updater/updater.ini exists." }
+
+        # Locate the .ioc file
+        $iocFile = Get-ChildItem -Path $workspaceRoot -Filter "*.ioc" -File |
+                   Select-Object -First 1 -ExpandProperty FullName
+        if (-not $iocFile) { throw "No .ioc file found in '$workspaceRoot'." }
+
+        Write-Host "CubeMX EXE : $cubemxExe"
+        Write-Host "IOC file   : $iocFile"
+
+        # Write a CubeMX batch script
+        $batchScript = Join-Path $env:TEMP "cubemx_codegen.txt"
+        @"
+project generate
+exit
+"@ | Set-Content -Encoding ASCII $batchScript
+
+        Write-Host ("`n> " + $cubemxExe + " `"$iocFile`" -q " + $batchScript)
+        if (-not $DryRun) {
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = $cubemxExe
+            $psi.Arguments = "`"$iocFile`" -q `"$batchScript`""
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+
+            $proc = New-Object System.Diagnostics.Process
+            $proc.StartInfo = $psi
+            $proc.Start() | Out-Null
+            $proc.BeginErrorReadLine()  # drain stderr async to prevent deadlock
+
+            $generated = 0
+            while (-not $proc.StandardOutput.EndOfStream) {
+                $line = $proc.StandardOutput.ReadLine()
+                if ($line -match "Generated code: (.+)") {
+                    $generated++
+                    Write-Host "  [$generated] $($Matches[1])"
+                } elseif ($line -match "^\s*(OK|KO)\s*$") {
+                    Write-Host $line
+                } elseif ($line -match "SWIPConfigModel") {
+                    Write-Host "Known error suppressed (SWIPConfigModel)"
+                } elseif ($line -match "RealEvaluatedCondition") {
+                    Write-Host "Known error suppressed (RealEvaluatedCondition)"
+                } elseif ($line -match "\[ERROR\]") {
+                    Write-Host $line
+                }
+            }
+
+            $proc.WaitForExit()
+            if ($proc.ExitCode -ne 0) {
+                throw "CubeMX exited with code $($proc.ExitCode)."
+            }
+            Write-Host "Generated $generated file(s)."
+        }
+        Remove-Item $batchScript -Force -ErrorAction SilentlyContinue
     }
 }

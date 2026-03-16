@@ -1,3 +1,10 @@
 build
 mx.scratch
 !.settings
+
+# CubeMX-generated — regenerate with "STM32: CubeMX Codegen" task
+Drivers/
+Middlewares/
+MXTmpFiles/
+.mxproject
+cmake/stm32cubemx/CMakeLists.txt
