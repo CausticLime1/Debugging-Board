@@ -71,6 +71,14 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
   {
   /* USER CODE BEGIN USB_OTG_HS_MspInit 0 */
 
+  /* Open PC2/PC3 analog switches so ULPI_DIR and ULPI_NXT work as digital
+   * I/O.  On STM32H7, PC2_C / PC3_C route through a SYSCFG analog switch
+   * that defaults to closed (ADC path).  HAL_GPIO_Init does NOT open the
+   * switch automatically. */
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+  HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC2, SYSCFG_SWITCH_PC2_OPEN);
+  HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC3, SYSCFG_SWITCH_PC3_OPEN);
+
   /* USER CODE END USB_OTG_HS_MspInit 0 */
 
   /** Initializes the peripherals clock

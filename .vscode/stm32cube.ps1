@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("configure", "build", "flash", "flash-run", "codegen")]
+    [ValidateSet("configure", "build", "flash", "flash-run", "reset", "codegen")]
     [string]$Action,
 
     [string]$Preset = "Debug",
@@ -132,6 +132,13 @@ switch ($Action) {
             "-c", "port=$ConnectPort", "freq=$FrequencyKHz",
             "-w", $resolvedElf,
             "-v",
+            "-rst"
+        )
+    }
+
+    "reset" {
+        Invoke-External -Executable $programmerExe -Arguments @(
+            "-c", "port=$ConnectPort", "freq=$FrequencyKHz",
             "-rst"
         )
     }
